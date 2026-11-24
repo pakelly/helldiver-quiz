@@ -29,10 +29,13 @@ body { background: #0a0a0a; color: #d4d4d4; font-family: 'Courier New', monospac
 .scale-row input[type=range] { flex: 1; accent-color: #ffd700; }
 .scale-row .val { color: #ffd700; font-weight: bold; min-width: 24px; text-align: center; }
 .assign-grid { display: grid; gap: 8px; }
-.assign-row { display: flex; align-items: center; gap: 8px; background: #1a1a1a; border: 1px solid #333; padding: 10px 12px; border-radius: 3px; }
+.assign-row { display: flex; align-items: center; gap: 8px; background: #1a1a1a; border: 1px solid #333; padding: 10px 12px; border-radius: 3px; transition: border-color 0.2s; }
+.assign-row.conflict { border-color: #ff4444; background: #1a0a0a; }
 .assign-row .name { font-size: 0.85rem; min-width: 80px; }
 .assign-row select { background: #0a0a0a; color: #d4d4d4; border: 1px solid #444; padding: 6px 8px; font-family: inherit; font-size: 0.8rem; border-radius: 3px; flex: 1; }
+.assign-row select option.used { color: #444; font-style: italic; }
 .assign-error { color: #ff4444; font-size: 0.7rem; margin-top: 4px; display: none; }
+.assign-hint { color: #888; font-size: 0.65rem; margin-top: 4px; display: none; }
 .btn { background: #ffd700; color: #000; border: none; padding: 10px 20px; font-family: inherit; font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 3px; width: 100%; letter-spacing: 1px; }
 .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
 .btn-secondary { background: transparent; color: #ffd700; border: 1px solid #ffd700; }
@@ -162,7 +165,7 @@ if(params.get('tab')==='agg')switchTab('agg');
 function startQuiz(){currentName=document.getElementById('name-select').value;if(!currentName)return;answers={};currentQ=0;document.getElementById('step-name').classList.add('hidden');renderQuestion();}
 function renderQuestion(){const c=document.getElementById('questions-container');if(currentQ>=QUESTIONS.length){showResult();return;}const q=QUESTIONS[currentQ];const all=SQUAD.slice();let h='<div class="card" id="q-'+q.id+'"><div class="q-label">QUESTION '+(currentQ+1)+' OF '+QUESTIONS.length+' — '+q.label+'</div><div class="q-text">'+q.text+'</div>';
 if(q.type==='rank'){const a=RANK_AFFINITY[q.id];h+='<div class="scale-labels"><span>'+a.leftLabel+'</span><span>'+a.rightLabel+'</span></div>';const seed=(currentName+q.id).split('').reduce((s,c)=>s+c.charCodeAt(0),0);const sh=[...all].sort((a,b)=>((a.charCodeAt(0)+seed)%7)-((b.charCodeAt(0)+seed)%7));h+='<ul class="rank-list" id="rank-'+q.id+'">';sh.forEach((n,i)=>{h+='<li class="rank-item" data-name="'+n+'" draggable="true"><span class="handle">☰</span><span class="pos">'+(i+1)+'</span><span class="name">'+n+'</span></li>';});h+='</ul><div class="q-hint">'+q.hint+'</div>';}
-else if(q.type==='assign'){h+='<div class="assign-grid" id="assign-'+q.id+'">';all.forEach(n=>{h+='<div class="assign-row" data-name="'+n+'"><span class="name">'+n+'</span><select onchange="checkAssign(\''+q.id+'\')"><option value="">— Select —</option>'+q.options.map(o=>'<option value="'+o.id+'">'+o.text+'</option>').join('')+'</select></div>';});h+='</div><div class="assign-error" id="err-'+q.id+'">Each option must be assigned to exactly one person.</div><div class="q-hint">'+q.hint+'</div>';}
+else if(q.type==='assign'){h+='<div class="assign-grid" id="assign-'+q.id+'">';all.forEach(n=>{h+='<div class="assign-row" data-name="'+n+'"><span class="name">'+n+'</span><select onchange="checkAssign(\''+q.id+'\')"><option value="">— Select —</option>'+q.options.map(o=>'<option value="'+o.id+'">'+o.text+'</option>').join('')+'</select></div>';});h+='</div><div class="assign-error" id="err-'+q.id+'"></div><div class="assign-hint" id="hint-'+q.id+'">Each option must be assigned to exactly one person.</div><div class="q-hint">'+q.hint+'</div>';}
 else if(q.type==='score'){h+='<div class="scale-labels"><span>'+q.scaleLeftLabel+'</span><span>'+q.scaleRightLabel+'</span></div>';all.forEach(n=>{h+='<div class="scale-row" data-name="'+n+'"><span class="name">'+n+'</span><input type="range" min="'+q.scaleMin+'" max="'+q.scaleMax+'" value="'+q.scaleMin+'" oninput="this.parentElement.querySelector(\'.val\').textContent=this.value" id="score-'+q.id+'-'+n+'"><span class="val">'+q.scaleMin+'</span></div>';});h+='<div class="q-hint">'+q.hint+'</div>';}
 h+='<button class="btn" id="next-btn" onclick="nextQuestion()" disabled style="margin-top:12px;">'+(currentQ<QUESTIONS.length-1?'NEXT QUESTION →':'SUBMIT EVALUATION →')+'</button>';if(currentQ>0)h+='<button class="btn btn-secondary" onclick="prevQuestion()" style="margin-top:4px;">← PREVIOUS</button>';h+='</div>';c.innerHTML=h;
 if(q.type==='rank'){setupDragAndDrop(q.id);document.getElementById('next-btn').disabled=false;}
@@ -175,7 +178,56 @@ l.addEventListener('dragend',()=>{if(!dE)return;dE.classList.remove('dragging');
 l.addEventListener('touchstart',e=>{const it=e.target.closest('.rank-item');if(!it)return;tE=it;tE.classList.add('dragging');tO=gY(e)-it.getBoundingClientRect().top;e.preventDefault();},{passive:false});
 l.addEventListener('touchmove',e=>{if(!tE)return;e.preventDefault();const a=gA(l,gY(e));if(a&&a!==tE)l.insertBefore(tE,a);else if(!a)l.appendChild(tE);uP();},{passive:false});
 l.addEventListener('touchend',()=>{if(!tE)return;tE.classList.remove('dragging');tE=null;uP();});}
-function checkAssign(qId){const g=document.getElementById('assign-'+qId);const vs=[...g.querySelectorAll('select')].map(s=>s.value).filter(v=>v);const e=document.getElementById('err-'+qId);const b=document.getElementById('next-btn');if(vs.length===4&&new Set(vs).size===4){e.style.display='none';b.disabled=false;}else{e.style.display='block';b.disabled=true;}}
+function checkAssign(qId){
+const g=document.getElementById('assign-'+qId);
+const rows=[...g.querySelectorAll('.assign-row')];
+const selects=[...g.querySelectorAll('select')];
+const errEl=document.getElementById('err-'+qId);
+const hintEl=document.getElementById('hint-'+qId);
+const btn=document.getElementById('next-btn');
+
+// Collect values
+const values=selects.map(s=>s.value).filter(v=>v);
+const filled=values.length;
+const unique=new Set(values).size;
+
+// Find duplicates
+const seen={};const conflicts={};
+selects.forEach(s=>{const v=s.value;if(v){if(seen[v])conflicts[v]=true;seen[v]=(seen[v]||0)+1;}});
+
+// Highlight conflicting rows
+rows.forEach(r=>{r.classList.remove('conflict');});
+selects.forEach(s=>{if(s.value&&conflicts[s.value])s.closest('.assign-row').classList.add('conflict');});
+
+// Grey out used options in other dropdowns
+const usedCount={};
+selects.forEach(s=>{if(s.value)usedCount[s.value]=(usedCount[s.value]||0)+1;});
+selects.forEach(s=>{const myVal=s.value;[...s.options].forEach(opt=>{if(!opt.value)return;const used=usedCount[opt.value]||0;if(opt.value===myVal&&used===1){opt.classList.remove('used');opt.disabled=false;}else if(used>0){opt.classList.add('used');opt.disabled=true;}else{opt.classList.remove('used');opt.disabled=false;}});});
+
+// Error logic
+if(filled===0){
+errEl.style.display='none';hintEl.style.display='none';btn.disabled=true;
+}else if(filled<4){
+errEl.style.display='none';
+hintEl.style.display='block';
+hintEl.textContent=filled+' of 4 assigned. Keep going.';
+btn.disabled=true;
+}else if(unique<4){
+// Find who conflicts
+const dupNames=[];
+const valToNames={};
+selects.forEach(s=>{if(s.value){if(!valToNames[s.value])valToNames[s.value]=[];valToNames[s.value].push(s.closest('.assign-row').dataset.name);}});
+for(const[v,names]of Object.entries(valToNames)){if(names.length>1)dupNames.push(names.join(' & '));}
+errEl.textContent='CONFLICT: '+dupNames.join('; ')+' have the same option.';
+errEl.style.display='block';
+hintEl.style.display='none';
+btn.disabled=true;
+}else{
+errEl.style.display='none';
+hintEl.style.display='none';
+btn.disabled=false;
+}
+}
 function saveCurrentAnswer(){const q=QUESTIONS[currentQ];if(q.type==='rank'){const l=document.getElementById('rank-'+q.id);if(l)answers[q.id]=[...l.querySelectorAll('.rank-item')].map(it=>it.dataset.name);}else if(q.type==='assign'){const g=document.getElementById('assign-'+q.id);if(g){const a={};g.querySelectorAll('.assign-row').forEach(r=>{a[r.dataset.name]=r.querySelector('select').value;});answers[q.id]=a;}}else if(q.type==='score'){const a={};SQUAD.forEach(n=>{const e=document.getElementById('score-'+q.id+'-'+n);if(e)a[n]=parseInt(e.value);});answers[q.id]=a;}}
 function nextQuestion(){saveCurrentAnswer();currentQ++;renderQuestion();window.scrollTo(0,0);}
 function prevQuestion(){saveCurrentAnswer();currentQ--;renderQuestion();window.scrollTo(0,0);}
