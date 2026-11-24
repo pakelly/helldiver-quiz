@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEAF Helldiver Corps — Squad Role Evaluation Protocol</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #d4d4d4; font-family: 'Courier New', monospace; min-height: 100vh; padding: 16px; }
+.header { text-align: center; border-bottom: 2px solid #ffd700; padding-bottom: 16px; margin-bottom: 20px; }
+.header h1 { color: #ffd700; font-size: 1.1rem; letter-spacing: 1px; }
+.header .subtitle { color: #888; font-size: 0.75rem; margin-top: 4px; }
+.header .seal { font-size: 2rem; margin-bottom: 4px; }
+.warning { background: #1a1100; border: 1px solid #ff6600; color: #ff9933; padding: 8px 12px; font-size: 0.7rem; margin: 12px 0; text-align: center; }
+.card { background: #111; border: 1px solid #333; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
+.card h2 { color: #ffd700; font-size: 0.85rem; margin-bottom: 12px; letter-spacing: 1px; }
+.q-label { color: #ff4444; font-size: 0.7rem; font-weight: bold; margin-bottom: 4px; }
+.q-text { font-size: 0.85rem; margin-bottom: 12px; line-height: 1.4; }
+.q-hint { color: #666; font-size: 0.65rem; margin-top: 4px; font-style: italic; }
+.rank-list { list-style: none; padding: 0; }
+.rank-item { background: #1a1a1a; border: 1px solid #333; padding: 10px 12px; margin: 4px 0; display: flex; align-items: center; gap: 8px; cursor: grab; border-radius: 3px; font-size: 0.85rem; user-select: none; -webkit-user-select: none; touch-action: none; }
+.rank-item.dragging { opacity: 0.4; border-color: #ffd700; }
+.rank-item .handle { color: #555; font-size: 0.7rem; }
+.rank-item .pos { color: #ffd700; font-weight: bold; min-width: 24px; }
+.rank-item .name { flex: 1; }
+.assign-grid { display: grid; gap: 8px; }
+.assign-row { display: flex; align-items: center; gap: 8px; background: #1a1a1a; border: 1px solid #333; padding: 10px 12px; border-radius: 3px; }
+.assign-row .name { font-size: 0.85rem; min-width: 80px; }
+.assign-row select { background: #0a0a0a; color: #d4d4d4; border: 1px solid #444; padding: 6px 8px; font-family: inherit; font-size: 0.8rem; border-radius: 3px; flex: 1; }
+.assign-error { color: #ff4444; font-size: 0.7rem; margin-top: 4px; display: none; }
+.btn { background: #ffd700; color: #000; border: none; padding: 10px 20px; font-family: inherit; font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 3px; width: 100%; letter-spacing: 1px; }
+.btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+.btn-secondary { background: transparent; color: #ffd700; border: 1px solid #ffd700; }
+.name-entry { text-align: center; }
+.name-entry select { background: #0a0a0a; color: #ffd700; border: 1px solid #444; padding: 12px; font-family: inherit; font-size: 1rem; border-radius: 3px; width: 100%; margin: 12px 0; }
+.code-display { background: #0a0a0a; border: 2px solid #ffd700; padding: 16px; text-align: center; margin: 16px 0; border-radius: 4px; }
+.code-display .code { font-size: 1.4rem; color: #ffd700; letter-spacing: 3px; font-weight: bold; word-break: break-all; }
+.code-display .label { color: #888; font-size: 0.7rem; margin-bottom: 8px; }
+.copy-btn { background: #333; color: #d4d4d4; border: 1px solid #555; padding: 6px 12px; font-family: inherit; font-size: 0.7rem; cursor: pointer; border-radius: 3px; margin-top: 8px; }
+.code-input { background: #0a0a0a; color: #ffd700; border: 1px solid #444; padding: 10px; font-family: inherit; font-size: 0.85rem; border-radius: 3px; width: 100%; margin: 4px 0; }
+.code-input-label { color: #888; font-size: 0.75rem; margin-bottom: 2px; }
+.result-card { background: #111; border: 2px solid #ffd700; border-radius: 4px; padding: 20px; margin: 12px 0; text-align: center; }
+.result-card .role-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.result-card .name { color: #ffd700; font-size: 1.2rem; font-weight: bold; }
+.result-card .role { color: #d4d4d4; font-size: 0.9rem; margin-top: 4px; }
+.result-card .weapon { color: #888; font-size: 0.7rem; margin-top: 8px; }
+.result-card .rank { color: #ff4444; font-size: 0.7rem; font-weight: bold; }
+.report-header { text-align: center; color: #ffd700; font-size: 0.9rem; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+.report-header .official { color: #666; font-size: 0.6rem; font-style: italic; margin-top: 4px; }
+.hidden { display: none; }
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.tab { flex: 1; background: #1a1a1a; color: #666; border: 1px solid #333; padding: 10px; font-family: inherit; font-size: 0.75rem; cursor: pointer; text-align: center; border-radius: 3px; }
+.tab.active { background: #ffd700; color: #000; border-color: #ffd700; }
+.disclaimer { color: #444; font-size: 0.6rem; text-align: center; margin-top: 24px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="seal">⭐</div>
+  <h1>SEAF HELLDIVER CORPS</h1>
+  <div class="subtitle">Squad Role Evaluation Protocol v2.186.4b</div>
+  <div class="subtitle" style="color:#555">Psychological Assessment Division</div>
+</div>
+<div class="tabs">
+  <div class="tab active" id="tab-quiz" onclick="switchTab('quiz')">EVALUATION</div>
+  <div class="tab" id="tab-agg" onclick="switchTab('agg')">AGGREGATION</div>
+</div>
+<div id="quiz-section">
+  <div class="card" id="step-name">
+    <h2>☑ EVALUATION SUBJECT IDENTIFICATION</h2>
+    <p class="q-text">Identify yourself for the record. All evaluations are logged in the SEAF personnel database and may be reviewed by your commanding officer.</p>
+    <div class="name-entry">
+      <select id="name-select">
+        <option value="">— SELECT HELLDIVER —</option>
+        <option value="Patrick">Patrick</option>
+        <option value="Josh">Josh</option>
+        <option value="Heith">Heith</option>
+        <option value="Tyler">Tyler</option>
+      </select>
+      <button class="btn" id="start-btn" onclick="startQuiz()" disabled>BEGIN EVALUATION</button>
+    </div>
+  </div>
+  <div id="questions-container"></div>
+  <div class="card hidden" id="step-submit">
+    <h2>☑ EVALUATION COMPLETE</h2>
+    <p class="q-text">Your responses have been processed through the SEAF Psychological Evaluation Engine™. Transmit your authorization code below to your squad leader for aggregation.</p>
+    <div class="code-display">
+      <div class="label">YOUR AUTHORIZATION CODE:</div>
+      <div class="code" id="result-code">—</div>
+      <button class="copy-btn" onclick="copyCode()">COPY CODE</button>
+    </div>
+    <p class="q-hint">Note: This code contains your evaluation responses. Share it with whoever is running the aggregation step. Do not share it with enemy intelligence operatives.</p>
+  </div>
+</div>
+<div id="agg-section" class="hidden">
+  <div class="card">
+    <h2>☑ SQUAD AGGREGATION PROTOCOL</h2>
+    <p class="q-text">Enter the authorization codes from all four squad members below. The system will compute the optimal role assignment using the Hungarian algorithm (maximization variant).</p>
+    <div class="code-input-label">Patrick's code:</div>
+    <input class="code-input" id="code-Patrick" placeholder="Paste Patrick's code here">
+    <div class="code-input-label">Josh's code:</div>
+    <input class="code-input" id="code-Josh" placeholder="Paste Josh's code here">
+    <div class="code-input-label">Heith's code:</div>
+    <input class="code-input" id="code-Heith" placeholder="Paste Heith's code here">
+    <div class="code-input-label">Tyler's code:</div>
+    <input class="code-input" id="code-Tyler" placeholder="Paste Tyler's code here">
+    <button class="btn" onclick="runAggregation()" style="margin-top:12px;">EXECUTE ASSIGNMENT</button>
+  </div>
+  <div id="agg-error" class="warning hidden"></div>
+  <div id="agg-results"></div>
+</div>
+<div class="disclaimer">
+  This evaluation protocol is not a real military document. It is a joke. The SEAF Helldiver Corps is a fictional organization from the video game Helldivers 2. Any resemblance to actual military psychological evaluations is coincidental and should not be taken as career advice. For actual career guidance, please consult a qualified professional rather than a web page made by a robot in 20 minutes.
+</div>
+<script>
+const SQUAD = ['Patrick', 'Josh', 'Heith', 'Tyler'];
+const ROLES = [
+  { id: 'leader', name: 'Squad Leader', rank: 'Sgt.', weapon: 'GL-21 Grenade Launcher', icon: '⭐', desc: 'Calls the shots. Carries supply pack.' },
+  { id: 'marksman', name: 'Squad Marksman', rank: 'Cpl.', weapon: 'APW-1 Anti-Material Rifle', icon: '🎯', desc: 'Precision kills. Carries supply pack.' },
+  { id: 'atgunner', name: 'Anti-Tank Gunner', rank: 'Cpl.', weapon: 'GR-8 Recoilless Rifle', icon: '💥', desc: 'Kills heavy armor.' },
+  { id: 'mgunner', name: 'Machine Gunner', rank: 'Cpl.', weapon: 'MG-43 Machine Gun', icon: '🔫', desc: 'Suppressive fire. Crowd control.' }
+];
+const TRAIT_AFFINITY = {
+  solo: { leader: 0.8, marksman: 1.0, atgunner: 0.5, mgunner: 0.2 },
+  friendly_fire: { leader: 0.3, marksman: 0.1, atgunner: 0.2, mgunner: 1.0 },
+  emotional: { leader: 1.0, marksman: 0.4, atgunner: 0.4, mgunner: 0.2 },
+  curiosity: { leader: 0.2, marksman: 0.3, atgunner: 1.0, mgunner: 0.5 },
+  reaction: { leader: 0.4, marksman: 1.0, atgunner: 0.9, mgunner: 0.5 },
+  defiance: { leader: 0.8, marksman: 0.1, atgunner: 0.4, mgunner: 0.3 },
+  chaos: { leader: 0.7, marksman: 0.1, atgunner: 0.2, mgunner: 0.9 }
+};
+const QUESTIONS = [
+  { id: 'q1', type: 'assign', label: 'TACTICAL ASSESSMENT',
+    text: 'Based on your assessment of each squadmate\'s decision-making under pressure, assign them to the tactical role that maximizes squad cohesion and survival probability.',
+    hint: 'Each squadmate must be assigned a unique role. No sharing.' },
+  { id: 'q2', type: 'rank', trait: 'solo', label: 'SOLO OPERATIVE INDEX',
+    text: 'Rank your squadmates from most to least likely to successfully complete the objective alone, given that all other squad members have been killed by friendly fire.',
+    hint: '1st = most likely to solo it. 4th = will die in the first 30 seconds.' },
+  { id: 'q3', type: 'rank', trait: 'friendly_fire', label: 'ORBITAL MISFORTUNE PROBABILITY',
+    text: 'Rank your squadmates from most to least likely to accidentally call an orbital strike on their own position.',
+    hint: '1st = most likely to Eagle airstrike themselves. This is a negative trait.' },
+  { id: 'q4', type: 'assign', label: 'SIEGE DOCTRINE ASSESSMENT',
+    text: 'In a scenario where the squad must hold a defensive position against overwhelming enemy numbers for 12 minutes, which role should each squadmate assume?',
+    hint: 'Consider defensive instincts, spatial awareness, and likelihood of not running away from the fortress.' },
+  { id: 'q5', type: 'rank', trait: 'emotional', label: 'EMOTIONAL RESILIENCE PROFILE',
+    text: 'Rank your squadmates from most to least emotionally affected by the loss of a squadmate.',
+    hint: 'The SEAF Psychological Evaluation Bureau values emotional awareness as a leadership trait. This is not a judgment. (It is slightly a judgment.)' },
+  { id: 'q6', type: 'rank', trait: 'curiosity', label: 'HAZARDOUS OBJECT INTERACTION INDEX',
+    text: 'Rank your squadmates from most to least likely to pick up a mysterious, glowing object on an alien planet without checking with command first.',
+    hint: '1st = will touch the glowing thing. 4th = will shoot the glowing thing.' },
+  { id: 'q7', type: 'assign', label: 'INFILTRATION ROLE OPTIMIZATION',
+    text: 'If your squad were assigned to infiltrate a bug hive structure with zero extraction guarantees, which role would each squadmate best fulfill?',
+    hint: 'Consider who you would want watching your back in a dark tunnel full of bugs.' },
+  { id: 'q8', type: 'rank', trait: 'reaction', label: 'REACTION TIME ASSESSMENT',
+    text: 'Rank your squadmates by raw reaction speed (estimated, based on your observations of their performance in simulated combat scenarios).',
+    hint: '1st = sees the Charger before it hits them. 4th = gets hit by the Charger, then sees it.' },
+  { id: 'q9', type: 'rank', trait: 'defiance', label: 'COMMAND DIRECTIVE COMPLIANCE INDEX',
+    text: 'Rank your squadmates from most to least likely to ignore direct orders from command if they believed those orders endangered the squad.',
+    hint: '1st = will override command every time. 4th = follows orders to the letter, even the stupid ones.' },
+  { id: 'q10', type: 'rank', trait: 'chaos', label: 'ENTROPIC BATTLEFIELD FACTOR',
+    text: 'Rank your squadmates by general chaos energy — their capacity to create unpredictable battlefield situations through sheer force of personality.',
+    hint: '1st = entropy incarnate. 4th = plays by the book (boring).' }
+];
+let currentName = null, answers = {}, currentQ = 0;
+function switchTab(tab) {
+  document.getElementById('quiz-section').classList.toggle('hidden', tab !== 'quiz');
+  document.getElementById('agg-section').classList.toggle('hidden', tab !== 'agg');
+  document.getElementById('tab-quiz').classList.toggle('active', tab === 'quiz');
+  document.getElementById('tab-agg').classList.toggle('active', tab === 'agg');
+}
+document.getElementById('name-select').addEventListener('change', (e) => { document.getElementById('start-btn').disabled = !e.target.value; });
+const params = new URLSearchParams(location.search);
+if (params.get('u')) {
+  const opt = [...document.getElementById('name-select').options].find(o => o.value.toLowerCase() === params.get('u').toLowerCase());
+  if (opt) { document.getElementById('name-select').value = opt.value; document.getElementById('start-btn').disabled = false; }
+}
+if (params.get('tab') === 'agg') switchTab('agg');
+function startQuiz() { currentName = document.getElementById('name-select').value; if (!currentName) return; answers = {}; currentQ = 0; document.getElementById('step-name').classList.add('hidden'); renderQuestion(); }
+function renderQuestion() {
+  const container = document.getElementById('questions-container');
+  if (currentQ >= QUESTIONS.length) { showResult(); return; }
+  const q = QUESTIONS[currentQ];
+  const allSquad = SQUAD.slice();
+  let html = '<div class="card" id="q-' + q.id + '"><div class="q-label">QUESTION ' + (currentQ + 1) + ' OF ' + QUESTIONS.length + ' — ' + q.label + '</div><div class="q-text">' + q.text + '</div>';
+  if (q.type === 'rank') {
+    const seed = (currentName + q.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const shuffled = [...allSquad].sort((a, b) => ((a.charCodeAt(0) + seed) % 7) - ((b.charCodeAt(0) + seed) % 7));
+    html += '<ul class="rank-list" id="rank-' + q.id + '">';
+    shuffled.forEach((name, i) => { html += '<li class="rank-item" data-name="' + name + '" draggable="true"><span class="handle">☰</span><span class="pos">' + (i+1) + '</span><span class="name">' + name + '</span></li>'; });
+    html += '</ul><div class="q-hint">' + q.hint + '</div>';
+  } else if (q.type === 'assign') {
+    html += '<div class="assign-grid" id="assign-' + q.id + '">';
+    allSquad.forEach(name => { html += '<div class="assign-row" data-name="' + name + '"><span class="name">' + name + '</span><select onchange="checkAssign(\'' + q.id + '\')"><option value="">— Select role —</option>' + ROLES.map(r => '<option value="' + r.id + '">' + r.name + '</option>').join('') + '</select></div>'; });
+    html += '</div><div class="assign-error" id="err-' + q.id + '">Each role must be assigned to exactly one person.</div><div class="q-hint">' + q.hint + '</div>';
+  }
+  html += '<button class="btn" id="next-btn" onclick="nextQuestion()" disabled style="margin-top:12px;">' + (currentQ < QUESTIONS.length - 1 ? 'NEXT QUESTION →' : 'SUBMIT EVALUATION →') + '</button>';
+  if (currentQ > 0) html += '<button class="btn btn-secondary" onclick="prevQuestion()" style="margin-top:4px;">← PREVIOUS</button>';
+  html += '</div>';
+  container.innerHTML = html;
+  if (q.type === 'rank') { setupDragAndDrop(q.id); document.getElementById('next-btn').disabled = false; }
+  if (answers[q.id]) {
+    if (q.type === 'rank') {
+      const list = document.getElementById('rank-' + q.id);
+      answers[q.id].forEach((name, i) => { const item = list.querySelector('[data-name="' + name + '"]'); if (item) { list.appendChild(item); item.querySelector('.pos').textContent = i+1; } });
+    } else if (q.type === 'assign') {
+      Object.entries(answers[q.id]).forEach(([name, role]) => { const row = document.querySelector('#assign-' + q.id + ' .assign-row[data-name="' + name + '"] select'); if (row) row.value = role; });
+      checkAssign(q.id);
+    }
+  }
+}
+function setupDragAndDrop(qId) {
+  const list = document.getElementById('rank-' + qId);
+  let dragEl = null, touchDragEl = null, touchOffset = 0;
+  function getTouchY(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
+  function getDragAfterElement(container, y) {
+    const items = [...container.querySelectorAll('.rank-item:not(.dragging)')];
+    return items.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height/2; if (offset < 0 && offset > closest.offset) return { offset, element: child }; return closest; }, { offset: -Infinity }).element;
+  }
+  function updatePositions() { [...list.querySelectorAll('.rank-item')].forEach((item, i) => { item.querySelector('.pos').textContent = i+1; }); }
+  list.addEventListener('dragstart', (e) => { if (!e.target.classList.contains('rank-item')) return; dragEl = e.target; dragEl.classList.add('dragging'); });
+  list.addEventListener('dragover', (e) => { e.preventDefault(); if (!dragEl) return; const afterElement = getDragAfterElement(list, getTouchY(e)); if (afterElement) list.insertBefore(dragEl, afterElement); else list.appendChild(dragEl); updatePositions(); });
+  list.addEventListener('dragend', () => { if (!dragEl) return; dragEl.classList.remove('dragging'); dragEl = null; updatePositions(); });
+  list.addEventListener('touchstart', (e) => { const item = e.target.closest('.rank-item'); if (!item) return; touchDragEl = item; touchDragEl.classList.add('dragging'); touchOffset = getTouchY(e) - item.getBoundingClientRect().top; e.preventDefault(); }, { passive: false });
+  list.addEventListener('touchmove', (e) => { if (!touchDragEl) return; e.preventDefault(); const afterElement = getDragAfterElement(list, getTouchY(e)); if (afterElement && afterElement !== touchDragEl) list.insertBefore(touchDragEl, afterElement); else if (!afterElement) list.appendChild(touchDragEl); updatePositions(); }, { passive: false });
+  list.addEventListener('touchend', () => { if (!touchDragEl) return; touchDragEl.classList.remove('dragging'); touchDragEl = null; updatePositions(); });
+}
+function checkAssign(qId) {
+  const grid = document.getElementById('assign-' + qId);
+  const values = [...grid.querySelectorAll('select')].map(s => s.value).filter(v => v);
+  const errEl = document.getElementById('err-' + qId);
+  const btn = document.getElementById('next-btn');
+  if (values.length === 4 && new Set(values).size === 4) { errEl.style.display = 'none'; btn.disabled = false; }
+  else { errEl.style.display = 'block'; btn.disabled = true; }
+}
+function saveCurrentAnswer() {
+  const q = QUESTIONS[currentQ];
+  if (q.type === 'rank') { const list = document.getElementById('rank-' + q.id); if (list) answers[q.id] = [...list.querySelectorAll('.rank-item')].map(item => item.dataset.name); }
+  else if (q.type === 'assign') { const grid = document.getElementById('assign-' + q.id); if (grid) { const a = {}; grid.querySelectorAll('.assign-row').forEach(row => { a[row.dataset.name] = row.querySelector('select').value; }); answers[q.id] = a; } }
+}
+function nextQuestion() { saveCurrentAnswer(); currentQ++; renderQuestion(); window.scrollTo(0, 0); }
+function prevQuestion() { saveCurrentAnswer(); currentQ--; renderQuestion(); window.scrollTo(0, 0); }
+function encodeAnswers() { return btoa(JSON.stringify({ n: currentName, a: answers })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function decodeAnswers(code) { try { return JSON.parse(atob(code.replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; } }
+function showResult() { document.getElementById('questions-container').innerHTML = ''; document.getElementById('step-submit').classList.remove('hidden'); document.getElementById('result-code').textContent = encodeAnswers(); }
+function copyCode() { const code = document.getElementById('result-code').textContent; navigator.clipboard.writeText(code).then(() => { const btn = document.querySelector('.copy-btn'); btn.textContent = 'COPIED ✓'; setTimeout(() => btn.textContent = 'COPY CODE', 2000); }); }
+function permute(arr) { if (arr.length <= 1) return [arr]; const result = []; for (let i = 0; i < arr.length; i++) { const rest = [...arr.slice(0, i), ...arr.slice(i+1)]; for (const p of permute(rest)) result.push([arr[i], ...p]); } return result; }
+function hungarianMaximize(people, roles, scores) {
+  const perms = permute(roles);
+  let best = null, bestTotal = -Infinity;
+  for (const perm of perms) {
+    let total = 0;
+    for (let i = 0; i < people.length; i++) total += scores[people[i]][perm[i]];
+    if (total > bestTotal) { bestTotal = total; best = perm; }
+  }
+  return people.map((person, i) => ({ person, role: best[i] }));
+}
+function runAggregation() {
+  const codes = {};
+  SQUAD.forEach(name => { const el = document.getElementById('code-' + name); if (el && el.value.trim()) codes[name] = el.value.trim(); });
+  const errEl = document.getElementById('agg-error');
+  const resultsEl = document.getElementById('agg-results');
+  if (Object.keys(codes).length < 4) { errEl.textContent = 'ERROR: All four authorization codes are required. Missing: ' + SQUAD.filter(n => !codes[n]).join(', ') + '.'; errEl.classList.remove('hidden'); resultsEl.innerHTML = ''; return; }
+  const allData = {};
+  for (const [name, code] of Object.entries(codes)) {
+    const data = decodeAnswers(code);
+    if (!data || !data.n || !data.a) { errEl.textContent = 'ERROR: Invalid authorization code for ' + name + '. Please verify the code was copied correctly.'; errEl.classList.remove('hidden'); resultsEl.innerHTML = ''; return; }
+    allData[name] = data;
+  }
+  errEl.classList.add('hidden');
+  const scores = {};
+  SQUAD.forEach(name => { scores[name] = { leader: 0, marksman: 0, atgunner: 0, mgunner: 0 }; });
+  for (const data of Object.values(allData)) {
+    const ans = data.a;
+    for (const q of QUESTIONS) {
+      if (!ans[q.id]) continue;
+      if (q.type === 'assign') {
+        for (const [person, roleId] of Object.entries(ans[q.id])) { if (scores[person] && scores[person][roleId] !== undefined) scores[person][roleId] += 1; }
+      } else if (q.type === 'rank' && q.trait) {
+        const ranking = ans[q.id];
+        const affinity = TRAIT_AFFINITY[q.trait];
+        if (!affinity) continue;
+        const isNegative = q.trait === 'friendly_fire';
+        ranking.forEach((person, idx) => {
+          const effectiveWeight = isNegative ? (idx + 1) : (4 - idx);
+          for (const [roleId, aff] of Object.entries(affinity)) { if (scores[person] && scores[person][roleId] !== undefined) scores[person][roleId] += effectiveWeight * aff * 0.5; }
+        });
+      }
+    }
+  }
+  const roleIds = ROLES.map(r => r.id);
+  const assignment = hungarianMaximize(SQUAD, roleIds, scores);
+  let html = '<div class="report-header"><div>OFFICIAL SQUAD ROLE ASSIGNMENT REPORT</div><div class="official">SEAF Helldiver Corps — Psychological Evaluation Division — Classified</div><div class="official" style="margin-top:8px;color:#ffd700;font-size:0.7rem;">Computed via Hungarian Algorithm (Kuhn, 1955)</div></div>';
+  assignment.forEach(({ person, role }) => {
+    const r = ROLES.find(ro => ro.id === role);
+    html += '<div class="result-card"><div class="role-icon">' + r.icon + '</div><div class="name">' + person + '</div><div class="rank">' + r.rank + '</div><div class="role">' + r.name + '</div><div class="weapon">Primary: ' + r.weapon + '</div><div class="weapon" style="margin-top:4px;color:#666;">' + r.desc + '</div></div>';
+  });
+  html += '<div class="card" style="margin-top:16px;"><h2>☑ SCORE MATRIX (FOR TRANSPARENCY)</h2><div class="q-hint">The Hungarian algorithm maximizes total squad satisfaction. Each cell = aggregate score from all four evaluators.</div><div style="overflow-x:auto;margin-top:8px;"><table style="width:100%;font-size:0.7rem;border-collapse:collapse;"><thead><tr><th style="text-align:left;padding:4px;color:#ffd700;">Helldiver</th>' + ROLES.map(r => '<th style="padding:4px;color:#ffd700;text-align:center;">' + r.name + '</th>').join('') + '</tr></thead><tbody>';
+  SQUAD.forEach(name => {
+    html += '<tr><td style="padding:4px;color:#ffd700;font-weight:bold;">' + name + '</td>';
+    roleIds.forEach(rid => {
+      const isAssigned = assignment.find(a => a.person === name && a.role === rid);
+      const val = scores[name][rid].toFixed(1);
+      html += '<td style="padding:4px;text-align:center;' + (isAssigned ? 'color:#ffd700;font-weight:bold;background:#1a1500;' : 'color:#666;') + '">' + val + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+  html += '<div style="text-align:center;margin-top:16px;color:#444;font-size:0.6rem;">This assignment has been computed and is final. Appeals may be submitted to SEAF Command<br>but will not be reviewed. By order of the Psychological Evaluation Division, 2186.</div>';
+  resultsEl.innerHTML = html;
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
