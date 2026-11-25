@@ -128,21 +128,98 @@ const ROLES=[
   {id:'atgunner',name:'Anti-Tank Gunner',rank:'Cpl.',weapon:'GR-8 Recoilless Rifle',icon:'💥',desc:'Kills heavy armor.'},
   {id:'mgunner',name:'Machine Gunner',rank:'Cpl.',weapon:'MG-43 Machine Gun',icon:'🔫',desc:'Suppressive fire. Crowd control.'}
 ];
-const OPTION_MAP={
-  q1:{red:'atgunner',blue:'marksman',green:'mgunner',yellow:'leader'},
-  q2:{liber_tea:'atgunner',right_side:'leader',freedom:'marksman',casualty:'mgunner'},
-  q3:{leadership:'leader',obedience:'mgunner',fervor:'marksman',zeal:'atgunner'},
-  q9:{babysit:'atgunner',resource:'leader',hugs:'mgunner',stimguns:'marksman'},
-  q10:{at_ease:'leader',salute:'marksman',front_leaning:'atgunner',raiders:'mgunner'}
+// Assignment questions: each option maps to a full role vector
+const ASSIGN_VECTORS={
+  // Q1 — Color
+  q1:{
+    yellow:{leader:1.0,marksman:-0.5,atgunner:0,mgunner:0},
+    red:{leader:0,marksman:0,atgunner:1.0,mgunner:0.5},
+    blue:{leader:-0.5,marksman:1.0,atgunner:0.5,mgunner:0.5},
+    green:{leader:0.5,marksman:0.5,atgunner:0,mgunner:1.0}
+  },
+  // Q2 — Catchphrases (pure 1:1)
+  q2:{
+    liber_tea:{leader:0,marksman:0,atgunner:1.0,mgunner:0},
+    right_side:{leader:1.0,marksman:0,atgunner:0,mgunner:0},
+    freedom:{leader:0,marksman:1.0,atgunner:0,mgunner:0},
+    casualty:{leader:0,marksman:0,atgunner:0,mgunner:1.0}
+  },
+  // Q3 — Core Values (pure 1:1)
+  q3:{
+    leadership:{leader:1.0,marksman:0,atgunner:0,mgunner:0},
+    obedience:{leader:0,marksman:0,atgunner:0,mgunner:1.0},
+    fervor:{leader:0,marksman:1.0,atgunner:0,mgunner:0},
+    zeal:{leader:0,marksman:0,atgunner:1.0,mgunner:0}
+  },
+  // Q9 — SEAF Interaction (pure 1:1)
+  q9:{
+    babysit:{leader:0,marksman:0,atgunner:1.0,mgunner:0},
+    resource:{leader:1.0,marksman:0,atgunner:0,mgunner:0},
+    hugs:{leader:0,marksman:0,atgunner:0,mgunner:1.0},
+    stimguns:{leader:0,marksman:1.0,atgunner:0,mgunner:0}
+  },
+  // Q10 — Resting Posture
+  q10:{
+    at_ease:{leader:1.0,marksman:1.0,atgunner:0,mgunner:0},
+    salute:{leader:1.0,marksman:1.0,atgunner:1.0,mgunner:1.0},
+    front_leaning:{leader:-1.0,marksman:-1.0,atgunner:0.5,mgunner:0.5},
+    raiders:{leader:0,marksman:-1.0,atgunner:0,mgunner:1.0}
+  }
 };
-const RANK_AFFINITY={
-  q4:{leftLabel:'Volume of fire',rightLabel:'Density of fire',left:{mgunner:1.0,leader:0.5},right:{atgunner:1.0,marksman:0.5}},
-  q5:{leftLabel:'Good enough is perfect',rightLabel:'Perfect is perfect',left:{mgunner:1.0,leader:0.5},right:{marksman:1.0,atgunner:0.5}},
-  q6:{leftLabel:'Worst with FRV',rightLabel:'Best with FRV',left:{atgunner:1.0,marksman:0.5},right:{leader:1.0,mgunner:0.5}},
-  q7:{leftLabel:'Shortest life expectancy',rightLabel:'Longest life expectancy',left:{mgunner:1.0,atgunner:0.5},right:{marksman:1.0,leader:0.5}}
+// Rank questions: per-position vectors (position 0 = top/left, 3 = bottom/right)
+const RANK_VECTORS={
+  // Q4 — Volume(top) to Density(bottom)
+  q4:{
+    leftLabel:'Volume of fire',rightLabel:'Density of fire',
+    positions:[
+      {leader:0,marksman:-1.0,atgunner:-1.0,mgunner:1.0},      // #1 most volume
+      {leader:1.0,marksman:-0.75,atgunner:-1.0,mgunner:0.25},   // #2
+      {leader:0.25,marksman:1.0,atgunner:0.5,mgunner:-0.5},     // #3
+      {leader:0,marksman:0.75,atgunner:1.0,mgunner:-1.0}        // #4 most density
+    ]
+  },
+  // Q5 — Good enough(top) to Perfect(bottom)
+  q5:{
+    leftLabel:'Good enough is perfect',rightLabel:'Perfect is perfect',
+    positions:[
+      {leader:0,marksman:-0.5,atgunner:-0.5,mgunner:1.0},   // #1 good enough
+      {leader:0.5,marksman:0,atgunner:0,mgunner:0},          // #2
+      {leader:0,marksman:0.5,atgunner:0.5,mgunner:-0.5},     // #3
+      {leader:-0.5,marksman:1.0,atgunner:0,mgunner:-1.0}     // #4 perfect
+    ]
+  },
+  // Q6 — Worst with FRV(top) to Best(bottom)
+  q6:{
+    leftLabel:'Worst with FRV',rightLabel:'Best with FRV',
+    positions:[
+      {leader:-1.0,marksman:0.5,atgunner:1.0,mgunner:-0.5},  // #1 worst
+      {leader:-0.5,marksman:0,atgunner:0.5,mgunner:0},        // #2
+      {leader:0.5,marksman:0,atgunner:-0.5,mgunner:0},        // #3
+      {leader:1.0,marksman:-0.5,atgunner:-1.0,mgunner:0.5}    // #4 best
+    ]
+  },
+  // Q7 — Shortest life(top) to Longest(bottom)
+  q7:{
+    leftLabel:'Shortest life expectancy',rightLabel:'Longest life expectancy',
+    positions:[
+      {leader:-0.5,marksman:-1.0,atgunner:0,mgunner:1.0},     // #1 shortest
+      {leader:0,marksman:-0.25,atgunner:0.5,mgunner:0.25},    // #2
+      {leader:0.5,marksman:0.5,atgunner:0,mgunner:-0.5},      // #3
+      {leader:0,marksman:1.0,atgunner:-0.5,mgunner:-1.0}      // #4 longest
+    ]
+  }
 };
-const SCORE_AFFINITY={
-  q8:{high:{leader:1.0,atgunner:0.5},low:{marksman:1.0,mgunner:0.5}}
+// Score questions: per-value vectors
+const SCORE_VECTORS={
+  // Q8 — Selflessness (1=low, 4=high)
+  q8:{
+    values:{
+      4:{leader:1.0,marksman:0.5,atgunner:0.5,mgunner:0.5},
+      3:{leader:0,marksman:0,atgunner:0.5,mgunner:0.5},
+      2:{leader:-1.0,marksman:0,atgunner:0,mgunner:0},
+      1:{leader:-1.0,marksman:0,atgunner:-0.5,mgunner:-0.5}
+    }
+  }
 };
 const QUESTIONS=[
   {id:'q1',type:'assign',label:'CHROMATIC TACTICAL ASSESSMENT',text:'Associate each of your squadmates with a color:',options:[{id:'red',text:'Red'},{id:'blue',text:'Blue'},{id:'green',text:'Green'},{id:'yellow',text:'Yellow'}],hint:'This is a standard chromatic projection test. There are no wrong answers. (There are wrong answers.)'},
@@ -164,7 +241,7 @@ if(params.get('u')){const o=[...document.getElementById('name-select').options].
 if(params.get('tab')==='agg')switchTab('agg');
 function startQuiz(){currentName=document.getElementById('name-select').value;if(!currentName)return;answers={};currentQ=0;document.getElementById('step-name').classList.add('hidden');renderQuestion();}
 function renderQuestion(){const c=document.getElementById('questions-container');if(currentQ>=QUESTIONS.length){showResult();return;}const q=QUESTIONS[currentQ];const all=SQUAD.slice();let h='<div class="card" id="q-'+q.id+'"><div class="q-label">QUESTION '+(currentQ+1)+' OF '+QUESTIONS.length+' — '+q.label+'</div><div class="q-text">'+q.text+'</div>';
-if(q.type==='rank'){const a=RANK_AFFINITY[q.id];h+='<div class="scale-labels"><span>'+a.leftLabel+'</span></div>';const seed=(currentName+q.id).split('').reduce((s,c)=>s+c.charCodeAt(0),0);const sh=[...all].sort((a,b)=>((a.charCodeAt(0)+seed)%7)-((b.charCodeAt(0)+seed)%7));h+='<ul class="rank-list" id="rank-'+q.id+'">';sh.forEach((n,i)=>{h+='<li class="rank-item" data-name="'+n+'" draggable="true"><span class="handle">☰</span><span class="pos">'+(i+1)+'</span><span class="name">'+n+'</span></li>';});h+='</ul><div class="scale-labels" style="justify-content:flex-end"><span>'+a.rightLabel+'</span></div><div class="q-hint">'+q.hint+'</div>';}
+if(q.type==='rank'){const a=RANK_VECTORS[q.id];h+='<div class="scale-labels"><span>'+a.leftLabel+'</span></div>';const seed=(currentName+q.id).split('').reduce((s,c)=>s+c.charCodeAt(0),0);const sh=[...all].sort((a,b)=>((a.charCodeAt(0)+seed)%7)-((b.charCodeAt(0)+seed)%7));h+='<ul class="rank-list" id="rank-'+q.id+'">';sh.forEach((n,i)=>{h+='<li class="rank-item" data-name="'+n+'" draggable="true"><span class="handle">☰</span><span class="pos">'+(i+1)+'</span><span class="name">'+n+'</span></li>';});h+='</ul><div class="scale-labels" style="justify-content:flex-end"><span>'+a.rightLabel+'</span></div><div class="q-hint">'+q.hint+'</div>';
 else if(q.type==='assign'){h+='<div class="assign-grid" id="assign-'+q.id+'">';all.forEach(n=>{h+='<div class="assign-row" data-name="'+n+'"><span class="name">'+n+'</span><select onchange="checkAssign(\''+q.id+'\')"><option value="">— Select —</option>'+q.options.map(o=>'<option value="'+o.id+'">'+o.text+'</option>').join('')+'</select></div>';});h+='</div><div class="assign-error" id="err-'+q.id+'"></div><div class="assign-hint" id="hint-'+q.id+'">Each option must be assigned to exactly one person.</div><div class="q-hint">'+q.hint+'</div>';}
 else if(q.type==='score'){h+='<div class="scale-labels"><span>'+q.scaleLeftLabel+'</span><span>'+q.scaleRightLabel+'</span></div>';all.forEach(n=>{h+='<div class="scale-row" data-name="'+n+'"><span class="name">'+n+'</span><input type="range" min="'+q.scaleMin+'" max="'+q.scaleMax+'" value="'+q.scaleMin+'" oninput="this.parentElement.querySelector(\'.val\').textContent=this.value" id="score-'+q.id+'-'+n+'"><span class="val">'+q.scaleMin+'</span></div>';});h+='<div class="q-hint">'+q.hint+'</div>';}
 h+='<button class="btn" id="next-btn" onclick="nextQuestion()" disabled style="margin-top:12px;">'+(currentQ<QUESTIONS.length-1?'NEXT QUESTION →':'SUBMIT EVALUATION →')+'</button>';if(currentQ>0)h+='<button class="btn btn-secondary" onclick="prevQuestion()" style="margin-top:4px;">← PREVIOUS</button>';h+='</div>';c.innerHTML=h;
@@ -246,9 +323,9 @@ errEl.classList.add('hidden');
 const scores={};SQUAD.forEach(n=>{scores[n]={leader:0,marksman:0,atgunner:0,mgunner:0};});
 for(const data of Object.values(allData)){const ans=data.a;
 for(const q of QUESTIONS){if(!ans[q.id])continue;
-if(q.type==='assign'){const map=OPTION_MAP[q.id];if(!map)continue;for(const[person,optId]of Object.entries(ans[q.id])){const roleId=map[optId];if(roleId&&scores[person]&&scores[person][roleId]!==undefined)scores[person][roleId]+=1;}}
-else if(q.type==='rank'){const aff=RANK_AFFINITY[q.id];if(!aff)continue;const ranking=ans[q.id];const n=ranking.length;ranking.forEach((person,idx)=>{const pos=n>1?idx/(n-1):0.5;for(const[roleId,st]of Object.entries(aff.left)){if(scores[person]&&scores[person][roleId]!==undefined)scores[person][roleId]+=(1-pos)*st;}for(const[roleId,st]of Object.entries(aff.right)){if(scores[person]&&scores[person][roleId]!==undefined)scores[person][roleId]+=pos*st;}});}
-else if(q.type==='score'){const aff=SCORE_AFFINITY[q.id];if(!aff)continue;const range=q.scaleMax-q.scaleMin;for(const[person,val]of Object.entries(ans[q.id])){if(!scores[person])continue;const norm=range>0?(val-q.scaleMin)/range:0.5;for(const[roleId,st]of Object.entries(aff.high)){if(scores[person][roleId]!==undefined)scores[person][roleId]+=norm*st;}for(const[roleId,st]of Object.entries(aff.low)){if(scores[person][roleId]!==undefined)scores[person][roleId]+=(1-norm)*st;}}}}}
+if(q.type==='assign'){const vec=ASSIGN_VECTORS[q.id];if(!vec)continue;for(const[person,optId]of Object.entries(ans[q.id])){const v=vec[optId];if(!v||!scores[person])continue;for(const[roleId,st]of Object.entries(v)){if(scores[person][roleId]!==undefined)scores[person][roleId]+=st;}}}
+else if(q.type==='rank'){const rv=RANK_VECTORS[q.id];if(!rv)continue;const ranking=ans[q.id];ranking.forEach((person,idx)=>{const v=rv.positions[idx];if(!v||!scores[person])return;for(const[roleId,st]of Object.entries(v)){if(scores[person][roleId]!==undefined)scores[person][roleId]+=st;}});}
+else if(q.type==='score'){const sv=SCORE_VECTORS[q.id];if(!sv)continue;for(const[person,val]of Object.entries(ans[q.id])){if(!scores[person])continue;const v=sv.values[val];if(!v)continue;for(const[roleId,st]of Object.entries(v)){if(scores[person][roleId]!==undefined)scores[person][roleId]+=st;}}}}}
 const roleIds=ROLES.map(r=>r.id);
 const assignment=hungarianMaximize(SQUAD,roleIds,scores);
 let h='<div class="report-header"><div>OFFICIAL SQUAD ROLE ASSIGNMENT REPORT</div><div class="official">SEAF Helldiver Corps — Psychological Evaluation Division — Classified</div><div class="official" style="margin-top:8px;color:#ffd700;font-size:0.7rem;">Computed via Hungarian Algorithm (Kuhn, 1955)</div></div>';
